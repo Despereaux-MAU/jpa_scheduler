@@ -1,16 +1,18 @@
 package com.despereaux.jpa_scheduler.service;
 
+import com.despereaux.jpa_scheduler.dto.ScheduleCommentDto;
 import com.despereaux.jpa_scheduler.dto.ScheduleRequestDto;
 import com.despereaux.jpa_scheduler.dto.ScheduleResponseDto;
 import com.despereaux.jpa_scheduler.entity.Schedule;
 import com.despereaux.jpa_scheduler.repository.CommentRepository;
 import com.despereaux.jpa_scheduler.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,12 +29,17 @@ public class ScheduleService {
         scheduleRepository.save(schedule);
     }
 
-    public List<ScheduleResponseDto> getAllSchedules() {
-        return scheduleRepository
-                .findAll()
-                .stream()
-                .map(ScheduleResponseDto::new)
-                .collect(Collectors.toList());
+    public Page<ScheduleCommentDto> getAllSchedules(int Page) {
+        Pageable pageable = PageRequest.of(Page, 10); // 페이지 크기 10
+        return scheduleRepository.findAllByOrderByModifiedAtDesc(pageable)
+                .map(schedule -> new ScheduleCommentDto(
+                        schedule.getTitle(),
+                        schedule.getContent(),
+                        (long) schedule.getComments().size(), // 댓글 개수
+                        schedule.getCreatedAt(),
+                        schedule.getModifiedAt(),
+                        schedule.getUsername()
+                ));
     }
 
     public Optional<ScheduleResponseDto> getScheduleById(Long id) {

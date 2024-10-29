@@ -1,12 +1,13 @@
 package com.despereaux.jpa_scheduler.controller;
 
+import com.despereaux.jpa_scheduler.dto.ScheduleCommentDto;
 import com.despereaux.jpa_scheduler.dto.ScheduleRequestDto;
 import com.despereaux.jpa_scheduler.dto.ScheduleResponseDto;
 import com.despereaux.jpa_scheduler.service.ScheduleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -22,8 +23,8 @@ public class ScheduleController {
     }
 
     @GetMapping("/")
-    public List<ScheduleResponseDto> getAllSchedules() {
-        return scheduleService.getAllSchedules();
+    public Page<ScheduleCommentDto> getAllSchedules(@RequestParam(defaultValue = "0") int page) {
+        return scheduleService.getAllSchedules(page);
     }
 
     @GetMapping("/{id}")
