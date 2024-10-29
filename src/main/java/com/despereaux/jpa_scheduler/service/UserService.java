@@ -1,5 +1,6 @@
 package com.despereaux.jpa_scheduler.service;
 
+import com.despereaux.jpa_scheduler.config.PasswordEncoder;
 import com.despereaux.jpa_scheduler.dto.UserRequestDto;
 import com.despereaux.jpa_scheduler.dto.UserResponseDto;
 import com.despereaux.jpa_scheduler.entity.User;
@@ -16,6 +17,18 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    public void registerUser(@Valid UserRequestDto requestDto) {
+        String encodedPassword = passwordEncoder.encode(requestDto.getPassword()); // 비밀번호 암호화
+
+        User user = new User();
+        user.setUsername(requestDto.getUsername());
+        user.setEmail(requestDto.getEmail());
+        user.setPassword(encodedPassword); // 암호화 된 비밀번호 저장
+
+        userRepository.save(user);
+    }
 
     public void createUser(@Valid UserRequestDto requestDto) {
         User user = new User();

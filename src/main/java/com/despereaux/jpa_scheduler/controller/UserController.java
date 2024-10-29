@@ -16,6 +16,11 @@ public class UserController {
 
     private final UserService userService;
 
+    @PostMapping("/register")
+    public void registerUser(@RequestBody @Valid UserRequestDto requestDto) {
+        userService.registerUser(requestDto);
+    }
+
     @PostMapping("/")
     public void createUser(@RequestBody @Valid UserRequestDto requestDto) {
         userService.createUser(requestDto);
