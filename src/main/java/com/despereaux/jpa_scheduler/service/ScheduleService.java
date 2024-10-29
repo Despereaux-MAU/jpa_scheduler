@@ -3,6 +3,7 @@ package com.despereaux.jpa_scheduler.service;
 import com.despereaux.jpa_scheduler.dto.ScheduleRequestDto;
 import com.despereaux.jpa_scheduler.dto.ScheduleResponseDto;
 import com.despereaux.jpa_scheduler.entity.Schedule;
+import com.despereaux.jpa_scheduler.repository.CommentRepository;
 import com.despereaux.jpa_scheduler.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,8 +17,8 @@ import java.util.stream.Collectors;
 public class ScheduleService {
 
     private final ScheduleRepository scheduleRepository;
+    private final CommentRepository commentRepository;
 
-    // 일정 생성
     public void createSchedule(ScheduleRequestDto requestDto) {
         Schedule schedule = new Schedule(
                 requestDto.getUsername(),
@@ -25,7 +26,7 @@ public class ScheduleService {
                 requestDto.getContent());
         scheduleRepository.save(schedule);
     }
-    // 일정 전체 조회
+
     public List<ScheduleResponseDto> getAllSchedules() {
         return scheduleRepository
                 .findAll()
@@ -34,13 +35,11 @@ public class ScheduleService {
                 .collect(Collectors.toList());
     }
 
-    // 일정 {id} 조회
     public Optional<ScheduleResponseDto> getScheduleById(Long id) {
         return scheduleRepository.findById(id)
                 .map(ScheduleResponseDto::new);
     }
 
-    // 일정 수정
     public void updateSchedule(Long id, ScheduleRequestDto requestDto) {
         Schedule schedule = scheduleRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다." + id));
@@ -50,8 +49,11 @@ public class ScheduleService {
         scheduleRepository.save(schedule);
     }
 
-    // 일정 삭제
     public void deleteScheduleById(Long id) {
-        scheduleRepository.deleteById(id);
+        Schedule schedule = scheduleRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다: " + id));
+
+        commentRepository.deleteAll(schedule.getComments()); // 댓글을 먼저 삭제
+        scheduleRepository.delete(schedule); // 댓글 삭제 후 일정 삭제
     }
 }
