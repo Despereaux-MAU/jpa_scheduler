@@ -42,7 +42,7 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "비밀번호가 일치하지 않습니다.");
         }
 
-        return jwtUtil.createToken(user.getEmail());
+        return jwtUtil.createToken(user.getEmail(), user.getRole().name());
     }
 
     public void createUser(@Valid UserRequestDto requestDto) {
