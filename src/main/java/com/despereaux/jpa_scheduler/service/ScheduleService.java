@@ -4,8 +4,10 @@ import com.despereaux.jpa_scheduler.dto.ScheduleCommentDto;
 import com.despereaux.jpa_scheduler.dto.ScheduleRequestDto;
 import com.despereaux.jpa_scheduler.dto.ScheduleResponseDto;
 import com.despereaux.jpa_scheduler.entity.Schedule;
+import com.despereaux.jpa_scheduler.entity.User;
 import com.despereaux.jpa_scheduler.repository.CommentRepository;
 import com.despereaux.jpa_scheduler.repository.ScheduleRepository;
+import com.despereaux.jpa_scheduler.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,12 +22,17 @@ public class ScheduleService {
 
     private final ScheduleRepository scheduleRepository;
     private final CommentRepository commentRepository;
+    private final UserRepository userRepository;
 
     public void createSchedule(ScheduleRequestDto requestDto) {
-        Schedule schedule = new Schedule(
-                requestDto.getUsername(),
-                requestDto.getTitle(),
-                requestDto.getContent());
+        User user = userRepository.findById(requestDto.getUserId())
+                        .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + requestDto.getUserId()));
+
+        Schedule schedule = new Schedule();
+        schedule.setTitle(requestDto.getTitle());
+        schedule.setContent(requestDto.getContent());
+        schedule.setUser(user); // 사용자와 연관 설정
+
         scheduleRepository.save(schedule);
     }
 
@@ -38,7 +45,7 @@ public class ScheduleService {
                         (long) schedule.getComments().size(), // 댓글 개수
                         schedule.getCreatedAt(),
                         schedule.getModifiedAt(),
-                        schedule.getUsername()
+                        schedule.getUser().getId() // 사용자 고유 식별자 반환
                 ));
     }
 
@@ -50,9 +57,14 @@ public class ScheduleService {
     public void updateSchedule(Long id, ScheduleRequestDto requestDto) {
         Schedule schedule = scheduleRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다." + id));
-        schedule.setUsername(requestDto.getUsername());
+
+        User user = userRepository.findById(requestDto.getUserId())
+                        .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다." + requestDto.getUserId()));
+
         schedule.setTitle(requestDto.getTitle());
         schedule.setContent(requestDto.getContent());
+        schedule.setUser(user); // 사용자와 연관 업데이트
+
         scheduleRepository.save(schedule);
     }
 
