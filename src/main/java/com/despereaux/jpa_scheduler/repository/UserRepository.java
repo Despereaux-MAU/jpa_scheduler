@@ -3,5 +3,8 @@ package com.despereaux.jpa_scheduler.repository;
 import com.despereaux.jpa_scheduler.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Optional;
+
 public interface UserRepository extends JpaRepository<User, Long> {
+    Optional<User> findByEmail(String email);
 }
