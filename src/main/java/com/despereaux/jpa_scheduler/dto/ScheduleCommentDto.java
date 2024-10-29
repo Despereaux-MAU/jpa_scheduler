@@ -12,7 +12,7 @@ public class ScheduleCommentDto {
     private Long commentCount;
     private LocalDateTime createdAt;
     private LocalDateTime modifiedAt;
-    private String username;
+    private Long userId;
 
     public ScheduleCommentDto(
             String title,
@@ -20,12 +20,12 @@ public class ScheduleCommentDto {
             Long commentCount,
             LocalDateTime createdAt,
             LocalDateTime modifiedAt,
-            String username) {
+            Long userId) {
         this.title = title;
         this.content = content;
         this.commentCount = commentCount;
         this.createdAt = createdAt;
         this.modifiedAt = modifiedAt;
-        this.username = username;
+        this.userId = userId;
     }
 }

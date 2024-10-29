@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -18,16 +19,16 @@ public class Schedule extends Timestamped {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String username;
     private String title;
     private String content;
 
     @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true) // 연관관계 설정 및 일정 삭제 시 댓글 삭제
     private List<Comment> comments;
 
-    public Schedule(String username, String title, String content) {
-        this.username = username;
-        this.title = title;
-        this.content = content;
-    }
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @ManyToMany(mappedBy = "assignedSchedules")
+    private List<User> assignedUsers = new ArrayList<>();
 }
