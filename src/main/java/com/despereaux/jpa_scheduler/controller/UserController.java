@@ -2,12 +2,9 @@ package com.despereaux.jpa_scheduler.controller;
 
 import com.despereaux.jpa_scheduler.dto.UserRequestDto;
 import com.despereaux.jpa_scheduler.dto.UserResponseDto;
+import com.despereaux.jpa_scheduler.entity.User;
 import com.despereaux.jpa_scheduler.service.UserService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,24 +17,21 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public void registerUser(@RequestBody @Valid UserRequestDto requestDto) {
-        userService.registerUser(requestDto);
+    public UserResponseDto register(@RequestBody UserRequestDto userRequestDto) {
+        User user = userService.register(userRequestDto);
+        return new UserResponseDto(user, null);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Void> loginUser(@RequestBody @Valid UserRequestDto requestDto) {
-
-        String token = userService.loginUser(requestDto);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + token);
-
-        return new ResponseEntity<>(headers, HttpStatus.OK);
+    public UserResponseDto login(@RequestBody UserRequestDto userRequestDto) {
+        String token = userService.login(userRequestDto.getEmail(), userRequestDto.getPassword());
+        User user = userService.findByEmail(userRequestDto.getEmail());
+        return new UserResponseDto(user, token);
     }
 
     @PostMapping("/")
-    public void createUser(@RequestBody @Valid UserRequestDto requestDto) {
-        userService.createUser(requestDto);
+    public UserResponseDto createUser(@RequestBody UserRequestDto requestDto) {
+        return userService.createUser(requestDto);
     }
 
     @GetMapping("/")
