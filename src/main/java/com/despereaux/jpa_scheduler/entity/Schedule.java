@@ -21,6 +21,15 @@ public class Schedule extends Timestamped {
 
     private String title;
     private String content;
+    private String weather;
+
+    public String getWeather() {
+        return weather;
+    }
+
+    public void setWeather(String weather) {
+        this.weather = weather;
+    }
 
     @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true) // 연관관계 설정 및 일정 삭제 시 댓글 삭제
     private List<Comment> comments;

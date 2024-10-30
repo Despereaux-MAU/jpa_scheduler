@@ -5,10 +5,12 @@ import com.despereaux.jpa_scheduler.dto.ScheduleRequestDto;
 import com.despereaux.jpa_scheduler.dto.ScheduleResponseDto;
 import com.despereaux.jpa_scheduler.entity.Schedule;
 import com.despereaux.jpa_scheduler.entity.User;
+import com.despereaux.jpa_scheduler.jwt.JwtUtil;
 import com.despereaux.jpa_scheduler.repository.CommentRepository;
 import com.despereaux.jpa_scheduler.repository.ScheduleRepository;
 import com.despereaux.jpa_scheduler.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +25,7 @@ public class ScheduleService {
     private final ScheduleRepository scheduleRepository;
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
 
     public void createSchedule(ScheduleRequestDto requestDto) {
         User user = userRepository.findById(requestDto.getUserId())
@@ -74,5 +77,9 @@ public class ScheduleService {
 
         commentRepository.deleteAll(schedule.getComments()); // 댓글을 먼저 삭제
         scheduleRepository.delete(schedule); // 댓글 삭제 후 일정 삭제
+    }
+
+    public Schedule save(Schedule schedule) {
+        return scheduleRepository.save(schedule);
     }
 }

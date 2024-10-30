@@ -3,9 +3,11 @@ package com.despereaux.jpa_scheduler.controller;
 import com.despereaux.jpa_scheduler.dto.ScheduleCommentDto;
 import com.despereaux.jpa_scheduler.dto.ScheduleRequestDto;
 import com.despereaux.jpa_scheduler.dto.ScheduleResponseDto;
+import com.despereaux.jpa_scheduler.dto.WeatherResponse;
+import com.despereaux.jpa_scheduler.entity.Schedule;
 import com.despereaux.jpa_scheduler.jwt.JwtUtil;
 import com.despereaux.jpa_scheduler.service.ScheduleService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,15 +20,23 @@ import static org.thymeleaf.util.StringUtils.substring;
 
 @RestController
 @RequestMapping("/api/schedules")
-@RequiredArgsConstructor
 public class ScheduleController {
 
     private final ScheduleService scheduleService;
-    private final JwtUtil jwtUtil;
+    private final WeatherResponse.WeatherService weatherService;
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    public ScheduleController(ScheduleService scheduleService, WeatherResponse.WeatherService weatherService) {
+        this.scheduleService = scheduleService;
+        this.weatherService = weatherService;
+    }
 
     @PostMapping("/")
-    public void createSchedule(@RequestBody ScheduleRequestDto requestDto) {
-        scheduleService.createSchedule(requestDto);
+    public Schedule createSchedule(@RequestBody Schedule schedule) {
+        WeatherResponse weatherResponse = weatherService.getWeather();
+        schedule.setWeather(weatherResponse.getToday().getDescription() + " " + weatherResponse.getToday().getTemperature() + "°C");
+        return scheduleService.save(schedule);
     }
 
     @GetMapping("/")

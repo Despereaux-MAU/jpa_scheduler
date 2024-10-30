@@ -4,65 +4,67 @@ import com.despereaux.jpa_scheduler.config.PasswordEncoder;
 import com.despereaux.jpa_scheduler.dto.UserRequestDto;
 import com.despereaux.jpa_scheduler.dto.UserResponseDto;
 import com.despereaux.jpa_scheduler.entity.User;
+import com.despereaux.jpa_scheduler.entity.UserRoleEnum;
 import com.despereaux.jpa_scheduler.jwt.JwtUtil;
 import com.despereaux.jpa_scheduler.repository.UserRepository;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class UserService {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
+    @Autowired
+    private UserRepository userRepository;
 
-    public void registerUser(@Valid UserRequestDto requestDto) {
-        String encodedPassword = passwordEncoder.encode(requestDto.getPassword()); // 비밀번호 암호화
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    public User register(UserRequestDto userRequestDto) {
         User user = new User();
-        user.setUsername(requestDto.getUsername());
-        user.setEmail(requestDto.getEmail());
-        user.setPassword(encodedPassword); // 암호화 된 비밀번호 저장
-
-        userRepository.save(user);
+        user.setUsername(userRequestDto.getUsername());
+        user.setEmail(userRequestDto.getEmail());
+        user.setPassword(passwordEncoder.encode(userRequestDto.getPassword()));
+        user.setRole(UserRoleEnum.USER);  // 기본 권한: USER
+        return userRepository.save(user);
     }
 
-    public String loginUser(UserRequestDto requestDto) {
-        User user = userRepository.findByEmail(requestDto.getEmail())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "이메일이 올바르지 않습니다."));
+    // 새롭게 추가된 createUser 메서드
+    public UserResponseDto createUser(UserRequestDto requestDto) {
+        User user = register(requestDto);  // 회원가입 로직 재사용
+        return new UserResponseDto(user, null);  // 토큰 없이 생성된 사용자 반환
+    }
 
-        if (!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "비밀번호가 일치하지 않습니다.");
+    public String login(String email, String password) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("이메일 또는 비밀번호가 올바르지 않습니다."));
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("이메일 또는 비밀번호가 올바르지 않습니다.");
         }
-
-        return jwtUtil.createToken(user.getEmail(), user.getRole().name());
+        return jwtUtil.generateToken(user.getEmail(), user.getRole().getAuthority());
     }
 
-    public void createUser(@Valid UserRequestDto requestDto) {
-        User user = new User();
-        user.setUsername(requestDto.getUsername());
-        user.setEmail(requestDto.getEmail());
-        userRepository.save(user);
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("해당 사용자를 찾을 수 없습니다."));
     }
 
     public List<UserResponseDto> getAllUsers() {
         return userRepository.findAll()
                 .stream()
-                .map(UserResponseDto::new)
+                .map(user -> new UserResponseDto(user, null))
                 .collect(Collectors.toList());
     }
 
     public UserResponseDto getUserById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + id));
-        return new UserResponseDto(user);
+        return new UserResponseDto(user, null);
     }
 
     public void deleteUser(Long id) {

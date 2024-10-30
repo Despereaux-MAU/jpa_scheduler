@@ -1,51 +1,60 @@
 package com.despereaux.jpa_scheduler.jwt;
 
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.security.Key;
 import java.util.Date;
+import java.util.Map;
 
 @Component
 public class JwtUtil {
 
-    private static final long EXPIRATION_TIME = 1000 * 60 * 60; // 1시간
+    private final String secretKey;
 
-    private static final String SECRET_KEY = "7Iqk7YyM66W07YOA7L2U65Sp7YG065+9U3ByaW5n6rCV7J2Y7Yqc7YSw7LWc7JuQ67mI7J6F64uI64ukLg==";
+    // application.properties에서 시크릿 키 주입
+    public JwtUtil(@Value("${jwt.secret.key}") String secretKey) {
+        this.secretKey = secretKey;
+    }
 
-    private final Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
-
-    public String createToken(String email, String role) {
+    // JWT 생성 메서드
+    public String generateToken(String email, String role) {
+        Map<String, Object> claims = Map.of("role", role);
         return Jwts.builder()
+                .setClaims(claims)
                 .setSubject(email)
-                .claim("role", role) // 권한 정보 추가
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(key, SignatureAlgorithm.HS256)
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))  // 1시간 유효
+                .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
 
+    // 토큰에서 Claims 추출
+    public Claims extractClaims(String token) {
+        return Jwts.parser()
+                .setSigningKey(secretKey)
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
+    // 토큰 유효성 검증 메서드
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            extractClaims(token);
             return true;
-        } catch (ExpiredJwtException e) {
-            throw new IllegalArgumentException("토큰이 만료되었습니다.");
-        } catch (JwtException | IllegalArgumentException e) {
+        } catch (ExpiredJwtException | UnsupportedJwtException | MalformedJwtException | IllegalArgumentException e) {
             return false;
         }
     }
 
+    // 토큰에서 역할(Role) 추출 메서드
     public String getRoleFromToken(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .get("role", String.class);
+        Claims claims = extractClaims(token);
+        return claims.get("role", String.class);
+    }
+
+    // 토큰 만료 여부 확인
+    public boolean isTokenExpired(String token) {
+        return extractClaims(token).getExpiration().before(new Date());
     }
 }
