@@ -2,10 +2,12 @@ package com.despereaux.jpa_scheduler.dto;
 
 import com.despereaux.jpa_scheduler.entity.Schedule;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Getter
+@RequiredArgsConstructor
 public class ScheduleResponseDto {
     private long id;
     private String title;

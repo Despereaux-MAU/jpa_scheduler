@@ -1,57 +1,46 @@
 package com.despereaux.jpa_scheduler.security;
 
 import com.despereaux.jpa_scheduler.jwt.JwtUtil;
-import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-public class JwtAuthorizationFilter extends AbstractAuthenticationProcessingFilter {
+public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
 
-    public JwtAuthorizationFilter(String defaultFilterProcessesUrl, JwtUtil jwtUtil, AuthenticationManager authenticationManager) {
-        super(defaultFilterProcessesUrl);
+    public JwtAuthorizationFilter(JwtUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
-        setAuthenticationManager(authenticationManager);  // AuthenticationManager 설정
     }
 
     @Override
-    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
-            throws AuthenticationException {
-        String token = request.getHeader("Authorization");
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+        String token = jwtUtil.resolveToken(request);
 
-        if (token == null || !token.startsWith("Bearer ")) {
-            return null;  // JWT가 없는 경우 null 반환
+        try {
+            if (token != null && jwtUtil.validateToken(token)) {
+                Authentication auth = jwtUtil.getAuthentication(token);
+
+                if (auth instanceof AbstractAuthenticationToken authenticationToken) {
+                    authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                }
+
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            }
+        } catch (Exception e) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
+            return;
         }
 
-        token = token.substring(7);  // "Bearer " 이후의 토큰만 추출
-        Claims claims = jwtUtil.extractClaims(token);
-
-        if (claims == null) {
-            return null;  // JWT가 유효하지 않은 경우 null 반환
-        }
-
-        String username = claims.getSubject();
-        UsernamePasswordAuthenticationToken authenticationToken =
-                new UsernamePasswordAuthenticationToken(username, null, null);
-
-        return getAuthenticationManager().authenticate(authenticationToken);
-    }
-
-    @Override
-    protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response,
-                                            FilterChain chain, Authentication authResult) throws IOException, ServletException {
-        SecurityContextHolder.getContext().setAuthentication(authResult);
-        chain.doFilter(request, response);
+        filterChain.doFilter(request, response);
     }
 }

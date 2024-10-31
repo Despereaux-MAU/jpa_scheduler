@@ -8,10 +8,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
@@ -21,27 +22,30 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
     public JwtAuthenticationFilter(AuthenticationManager authenticationManager, JwtUtil jwtUtil) {
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
-        setFilterProcessesUrl("/api/users/login");  // 로그인 엔드포인트 설정
     }
 
     @Override
-    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
-            throws AuthenticationException {
+    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) {
         String email = request.getParameter("email");
         String password = request.getParameter("password");
 
-        UsernamePasswordAuthenticationToken authenticationToken =
+        UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(email, password);
 
-        return authenticationManager.authenticate(authenticationToken);
+        return authenticationManager.authenticate(authToken);
     }
 
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response,
-                                            FilterChain chain, Authentication authResult) throws IOException, ServletException {
-        String email = ((org.springframework.security.core.userdetails.User) authResult.getPrincipal()).getUsername();
-        String token = jwtUtil.generateToken(email, "ROLE_USER");  // 예시로 사용자 역할 추가
+                                            FilterChain chain, Authentication authResult)
+            throws IOException, ServletException {
+        String username = authResult.getName();
+        List<String> roles = authResult.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
 
+        String role = roles.isEmpty() ? "USER" : roles.get(0);
+        String token = jwtUtil.generateToken(username, role);
         response.addHeader("Authorization", "Bearer " + token);
     }
 }
