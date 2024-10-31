@@ -23,16 +23,8 @@ public class Schedule extends Timestamped {
     private String content;
     private String weather;
 
-    public String getWeather() {
-        return weather;
-    }
-
-    public void setWeather(String weather) {
-        this.weather = weather;
-    }
-
-    @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true) // 연관관계 설정 및 일정 삭제 시 댓글 삭제
-    private List<Comment> comments;
+    @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> comments = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -40,4 +32,19 @@ public class Schedule extends Timestamped {
 
     @ManyToMany(mappedBy = "assignedSchedules")
     private List<User> assignedUsers = new ArrayList<>();
+
+    public static Schedule create(String title, String content, String weather, User user) {
+        Schedule schedule = new Schedule();
+        schedule.title = title;
+        schedule.content = content;
+        schedule.weather = weather;
+        schedule.user = user;
+        return schedule;
+    }
+
+    public void update(String title, String content, User user) {
+        this.title = title;
+        this.content = content;
+        this.user = user;
+    }
 }

@@ -1,60 +1,99 @@
 package com.despereaux.jpa_scheduler.jwt;
 
-import io.jsonwebtoken.*;
+import com.despereaux.jpa_scheduler.exception.TokenExpiredException;
+import com.despereaux.jpa_scheduler.exception.TokenMissingException;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
+import java.util.Base64;
 import java.util.Date;
-import java.util.Map;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class JwtUtil {
 
-    private final String secretKey;
+    @Value("${jwt.secret.key}")
+    private String secretKeyString;
+    private SecretKey secretKey;
 
-    // application.properties에서 시크릿 키 주입
-    public JwtUtil(@Value("${jwt.secret.key}") String secretKey) {
-        this.secretKey = secretKey;
+    @PostConstruct
+    protected void init() {
+        String encodedKey = Base64.getEncoder().encodeToString(secretKeyString.getBytes());
+        this.secretKey = Keys.hmacShaKeyFor(encodedKey.getBytes());
     }
 
-    // JWT 생성 메서드
-    public String generateToken(String email, String role) {
-        Map<String, Object> claims = Map.of("role", role);
+    public String generateToken(String username, String role) {
+
+        Claims claims = Jwts.claims();
+        claims.put("username", username);
+        claims.put("role", role);
+
+        long validityInMilliseconds = 3600000;
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(email)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))  // 1시간 유효
-                .signWith(SignatureAlgorithm.HS256, secretKey)
+                .setExpiration(new Date(System.currentTimeMillis() + validityInMilliseconds))
+                .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    // 토큰에서 Claims 추출
-    public Claims extractClaims(String token) {
-        return Jwts.parser()
-                .setSigningKey(secretKey)
-                .parseClaimsJws(token)
-                .getBody();
-    }
-
-    // 토큰 유효성 검증 메서드
     public boolean validateToken(String token) {
         try {
-            extractClaims(token);
+            Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token);
             return true;
-        } catch (ExpiredJwtException | UnsupportedJwtException | MalformedJwtException | IllegalArgumentException e) {
+        } catch (ExpiredJwtException e) {
+            throw new TokenExpiredException("토큰이 만료되었습니다.");
+        } catch (Exception e) {
             return false;
         }
     }
 
-    // 토큰에서 역할(Role) 추출 메서드
     public String getRoleFromToken(String token) {
-        Claims claims = extractClaims(token);
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
         return claims.get("role", String.class);
     }
 
-    // 토큰 만료 여부 확인
-    public boolean isTokenExpired(String token) {
-        return extractClaims(token).getExpiration().before(new Date());
+    public String getUsernameFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        return claims.get("username", String.class);
+    }
+
+    public Authentication getAuthentication(String token) {
+        Claims claims = Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token).getBody();
+        String email = claims.getSubject();
+        List<String> roles = claims.get("roles", List.class);
+
+        return new UsernamePasswordAuthenticationToken(
+                email, null, roles.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList())
+        );
+    }
+
+    public String resolveToken(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken == null || !bearerToken.startsWith("Bearer ")) {
+            throw new TokenMissingException("토큰이 필요합니다.");
+        }
+        return bearerToken.substring(7);
     }
 }

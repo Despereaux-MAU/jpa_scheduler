@@ -1,5 +1,6 @@
 package com.despereaux.jpa_scheduler.entity;
 
+import com.despereaux.jpa_scheduler.config.PasswordEncoder;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -16,7 +17,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @Table(name = "user")
-@ToString(onlyExplicitlyIncluded = true) // 특정 필드만 포함하도록 제한
+@ToString(onlyExplicitlyIncluded = true)
 public class User extends Timestamped {
 
     @Id
@@ -33,13 +34,13 @@ public class User extends Timestamped {
     private String email;
 
     @NotBlank(message = "비밀번호는 필수 입력 값입니다.")
-    private String password; // 암호화된 비밀번호 저장
+    private String password;
 
     @Enumerated(EnumType.STRING)
-    private UserRoleEnum role; // 사용자 권한
+    private UserRoleEnum role;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @ToString.Exclude // 순환 참조 방지
+    @ToString.Exclude
     private List<Schedule> schedules = new ArrayList<>();
 
     @ManyToMany
@@ -48,6 +49,23 @@ public class User extends Timestamped {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "schedule_id")
     )
-    @ToString.Exclude // 순환 참조 방지
+    @ToString.Exclude
     private List<Schedule> assignedSchedules = new ArrayList<>();
+
+    public static User createUser(String username, String email, String password, UserRoleEnum role) {
+        User user = new User();
+        user.username = username;
+        user.email = email;
+        user.password = password;
+        user.role = role;
+        return user;
+    }
+
+    public boolean checkPassword(String rawPassword, PasswordEncoder passwordEncoder) {
+        return passwordEncoder.matches(rawPassword, this.password);
+    }
+
+    public void assignRole(UserRoleEnum role) {
+        this.role = role;
+    }
 }

@@ -38,7 +38,7 @@ public class CommentController {
         commentService.updateComment(scheduleId, commentId, requestDto);
     }
 
-    @RequestMapping(value = "/{id}", method = RequestMethod.DELETE) // @DeleteMapping 애너테이션 사용 불가
+    @DeleteMapping("/{commentId}")
     public void deleteComment(@PathVariable Long scheduleId, @PathVariable Long commentId) {
         commentService.deleteComment(scheduleId, commentId);
     }

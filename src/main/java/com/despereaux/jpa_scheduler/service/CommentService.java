@@ -22,7 +22,8 @@ public class CommentService {
     public void createComment(Long scheduleId, CommentRequestDto requestDto) {
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new IllegalArgumentException("일정을 찾을 수 없습니다: " + scheduleId));
-        Comment comment = new Comment(
+
+        Comment comment = Comment.create(
                 requestDto.getComment(),
                 requestDto.getUsername(),
                 schedule
@@ -50,8 +51,8 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .filter(c -> c.getSchedule().getId().equals(scheduleId))
                 .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다: " + commentId));
-        comment.setUsername(requestDto.getUsername());
-        comment.setComment(requestDto.getComment());
+
+        comment.update(requestDto.getComment(), requestDto.getUsername());
         commentRepository.save(comment);
     }
 

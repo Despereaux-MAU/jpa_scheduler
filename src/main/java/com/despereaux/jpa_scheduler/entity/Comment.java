@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @Table(name = "comment")
-public class Comment extends Timestamped{
+public class Comment extends Timestamped {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,13 +19,22 @@ public class Comment extends Timestamped{
     private String username;
     private String comment;
 
-    @ManyToOne(fetch = FetchType.LAZY) // 연관관계 설정 및 필요할 때 호출
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "schedule_id", nullable = false)
     private Schedule schedule;
 
-    public Comment(String commnet, String username, Schedule schedule) {
+    public Comment(String comment, String username, Schedule schedule) {
         this.username = username;
-        this.comment = commnet;
+        this.comment = comment;
         this.schedule = schedule;
+    }
+
+    public static Comment create(String commentContent, String username, Schedule schedule) {
+        return new Comment(commentContent, username, schedule);
+    }
+
+    public void update(String commentContent, String username) {
+        this.comment = commentContent;
+        this.username = username;
     }
 }

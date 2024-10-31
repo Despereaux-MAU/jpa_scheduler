@@ -8,5 +8,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
-    Page<Schedule> findAllByOrderByModifiedAtDesc(Pageable pageable); // 수정일 기준 내림차순
+    Page<Schedule> findAllByOrderByModifiedAtDesc(Pageable pageable);
 }
