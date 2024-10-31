@@ -15,5 +15,6 @@ public class ScheduleCommentDto {
     private Long scheduleId;
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
+    private Long commentCount;
     private Long id;
 }
